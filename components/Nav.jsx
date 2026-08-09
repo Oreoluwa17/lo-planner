@@ -13,7 +13,7 @@ const LINKS = [
 
 export default function Nav() {
   const path = usePathname()
-  const { data:session } = useSession()
+  const { data:session } = useSession() ?? {}
 
   const user = session?.user
 

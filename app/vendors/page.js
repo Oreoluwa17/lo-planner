@@ -1,15 +1,17 @@
 'use client'
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import Nav from '@/components/Nav'
 import { getData, mutate } from '@/lib/sheets'
 
 const C = { maroon:'#62191C', rust:'#873632', blush:'#CAAE9F', beige:'#E0CFC2', cream:'#FBF6F2', white:'#fff' }
 const STATUSES = ['Not Contacted','Quoted','Booked','Deposit Paid','Fully Paid']
-const STATUS_COLOR = { 'Not Contacted':'rgba(98,25,28,0.35)','Quoted':'#9E7161','Booked':'#873632','Deposit Paid':'#873632','Fully Paid':'#2d6a4f' }
 const DAYS = ['traditional','church','general']
-const EMPTY_FORM = { name:'',cat:'',day:'church',contact:'',phone:'',quote:'',deposit:'',status:'Not Contacted',notes:'' }
-
-function fmt(n) { return n ? 'R '+Math.round(Number(n)).toLocaleString() : '—' }
+const EMPTY = { name:'',cat:'',day:'church',contact:'',phone:'',quote:'',deposit:'',status:'Not Contacted',notes:'' }
+const fmt = n => n ? 'R '+Math.round(Number(n)).toLocaleString() : '—'
+const inp = { width:'100%', padding:'0.62rem 0.8rem', border:'1px solid #CAAE9F', fontFamily:'var(--font-jost)', fontSize:'0.85rem', color:'#62191C', background:'#FBF6F2', outline:'none' }
+const lbl = { display:'block', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.16em', textTransform:'uppercase', color:'#873632', marginBottom:'0.28rem' }
 
 export default function Vendors() {
   const [vendors, setVendors] = useState([])
@@ -17,21 +19,21 @@ export default function Vendors() {
   const [filter, setFilter]   = useState('all')
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId]   = useState(null)
-  const [form, setForm]       = useState(EMPTY_FORM)
+  const [form, setForm]       = useState(EMPTY)
   const [saving, setSaving]   = useState(false)
 
   useEffect(() => { getData('vendors').then(setVendors).finally(()=>setLoading(false)) }, [])
 
-  const filtered = filter==='all' ? vendors : vendors.filter(v=>v.day===filter)
+  const filtered = filter==='all' ? vendors : vendors.filter(v=>v.day===filter||v.status===filter)
 
-  function openAdd()  { setForm(EMPTY_FORM); setEditId(null); setShowForm(true) }
+  function openAdd()  { setForm(EMPTY); setEditId(null); setShowForm(true) }
   function openEdit(v){ setForm({...v}); setEditId(v.id); setShowForm(true) }
 
   async function save() {
     if (!form.name.trim()) return
     setSaving(true)
     if (editId) {
-      await mutate('updateVendor', { ...form, id:editId })
+      await mutate('updateVendor', {...form, id:editId})
       setVendors(vs => vs.map(v => v.id===editId ? {...form,id:editId} : v))
     } else {
       const res = await mutate('addVendor', form)
@@ -42,12 +44,11 @@ export default function Vendors() {
 
   async function del(id) {
     if (!confirm('Delete this vendor?')) return
-    await mutate('deleteVendor', { id })
+    await mutate('deleteVendor', {id})
     setVendors(vs => vs.filter(v=>v.id!==id))
   }
 
-  const inp = { width:'100%', padding:'0.62rem 0.8rem', border:'1px solid '+C.blush, fontFamily:'var(--font-jost)', fontSize:'0.85rem', color:C.maroon, background:C.cream, outline:'none' }
-  const lbl = { display:'block', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.16em', textTransform:'uppercase', color:C.rust, marginBottom:'0.28rem' }
+  const STATUS_COLOR = {'Not Contacted':'rgba(98,25,28,0.35)','Quoted':'#9E7161','Booked':'#873632','Deposit Paid':'#873632','Fully Paid':'#2d6a4f'}
 
   return (
     <div className="page-wrap">
@@ -58,23 +59,17 @@ export default function Vendors() {
             <p style={{ fontSize:'0.6rem', fontWeight:500, letterSpacing:'0.28em', textTransform:'uppercase', color:C.rust }}>Manage</p>
             <h1 style={{ fontFamily:'var(--font-cormorant)', fontSize:'1.8rem', fontWeight:400, color:C.maroon }}>Vendors</h1>
           </div>
-          <button onClick={openAdd} style={{ padding:'0.6rem 1.1rem', background:C.maroon, color:'#fff', fontFamily:'var(--font-jost)', fontSize:'0.65rem', fontWeight:500, letterSpacing:'0.14em', textTransform:'uppercase', border:'none', cursor:'pointer' }}>
-            + Add
-          </button>
+          <button onClick={openAdd} style={{ padding:'0.6rem 1.1rem', background:C.maroon, color:'#fff', fontFamily:'var(--font-jost)', fontSize:'0.65rem', fontWeight:500, letterSpacing:'0.14em', textTransform:'uppercase', border:'none', cursor:'pointer' }}>+ Add</button>
         </div>
 
-        {/* Filters */}
         <div style={{ display:'flex', gap:'6px', marginBottom:'1.1rem', flexWrap:'wrap' }}>
           {['all',...DAYS].map(f => (
-            <button key={f} onClick={()=>setFilter(f)}
-              style={{ padding:'4px 12px', fontSize:'0.65rem', fontWeight:500, letterSpacing:'0.12em', textTransform:'uppercase', border:'1px solid '+C.blush, background:filter===f?C.maroon:C.white, color:filter===f?'#fff':C.rust, cursor:'pointer', borderRadius:20 }}>
-              {f==='all'?'All':f}
-            </button>
+            <button key={f} onClick={()=>setFilter(f)} style={{ padding:'4px 12px', fontSize:'0.62rem', fontWeight:500, letterSpacing:'0.1em', textTransform:'uppercase', border:'1px solid '+C.blush, background:filter===f?C.maroon:C.white, color:filter===f?'#fff':C.rust, cursor:'pointer', borderRadius:20 }}>{f==='all'?'All':f}</button>
           ))}
         </div>
 
         {loading ? <p style={{ fontSize:'0.85rem', color:'rgba(98,25,28,0.45)' }}>Loading…</p>
-        : filtered.length===0 ? <p style={{ fontSize:'0.85rem', color:'rgba(98,25,28,0.45)', textAlign:'center', padding:'2rem' }}>No vendors yet. Add your first one!</p>
+        : filtered.length===0 ? <p style={{ fontSize:'0.85rem', color:'rgba(98,25,28,0.4)', textAlign:'center', padding:'2rem' }}>No vendors yet.</p>
         : filtered.map(v => (
           <div key={v.id} style={{ background:C.white, border:'1px solid '+C.beige, padding:'1rem 1.1rem', marginBottom:'0.75rem' }}>
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'0.5rem' }}>
@@ -85,8 +80,8 @@ export default function Vendors() {
                   <span style={{ fontSize:'0.6rem', background:C.beige, color:C.maroon, padding:'2px 8px', borderRadius:20 }}>{v.day}</span>
                 </div>
                 <div style={{ fontSize:'0.75rem', color:'rgba(98,25,28,0.6)', marginTop:'2px' }}>{v.cat}{v.contact?' · '+v.contact:''}</div>
-                {v.phone && <div style={{ fontSize:'0.72rem', color:'rgba(98,25,28,0.45)' }}>{v.phone}</div>}
-                {v.notes && <div style={{ fontSize:'0.72rem', color:'rgba(98,25,28,0.55)', marginTop:'4px' }}>{v.notes}</div>}
+                {v.phone&&<div style={{ fontSize:'0.72rem', color:'rgba(98,25,28,0.45)' }}>{v.phone}</div>}
+                {v.notes&&<div style={{ fontSize:'0.72rem', color:'rgba(98,25,28,0.55)', marginTop:'4px' }}>{v.notes}</div>}
               </div>
               <div style={{ textAlign:'right', flexShrink:0 }}>
                 <div style={{ fontSize:'0.88rem', fontWeight:500, color:C.maroon }}>{fmt(v.quote)}</div>
@@ -120,8 +115,8 @@ export default function Vendors() {
               <div style={{ marginBottom:'0.9rem' }}><label style={lbl}>Status</label><select style={inp} value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>{STATUSES.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
               <div style={{ marginBottom:'1.4rem' }}><label style={lbl}>Notes</label><input style={inp} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Any notes…"/></div>
               <div style={{ display:'flex', gap:'0.75rem' }}>
-                <button onClick={()=>setShowForm(false)} style={{ flex:1, padding:'0.7rem', background:C.cream, border:'1px solid '+C.blush, color:C.rust, fontFamily:'var(--font-jost)', fontSize:'0.72rem', fontWeight:500, cursor:'pointer' }}>Cancel</button>
-                <button onClick={save} disabled={saving} style={{ flex:2, padding:'0.7rem', background:C.maroon, border:'none', color:'#fff', fontFamily:'var(--font-jost)', fontSize:'0.72rem', fontWeight:500, cursor:'pointer', opacity:saving?0.7:1 }}>{saving?'Saving…':editId?'Save changes':'Add vendor'}</button>
+                <button onClick={()=>setShowForm(false)} style={{ flex:1, padding:'0.7rem', background:C.cream, border:'1px solid '+C.blush, color:C.rust, fontFamily:'var(--font-jost)', fontSize:'0.72rem', cursor:'pointer' }}>Cancel</button>
+                <button onClick={save} disabled={saving} style={{ flex:2, padding:'0.7rem', background:C.maroon, border:'none', color:'#fff', fontFamily:'var(--font-jost)', fontSize:'0.72rem', cursor:'pointer', opacity:saving?0.7:1 }}>{saving?'Saving…':editId?'Save changes':'Add vendor'}</button>
               </div>
             </div>
           </div>

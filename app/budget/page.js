@@ -1,32 +1,34 @@
 'use client'
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import Nav from '@/components/Nav'
 import { getData, mutate } from '@/lib/sheets'
 
 const C = { maroon:'#62191C', rust:'#873632', blush:'#CAAE9F', beige:'#E0CFC2', cream:'#FBF6F2', white:'#fff' }
 const fmt = n => 'R ' + Math.round(Number(n)||0).toLocaleString()
+const inp = { width:'100%', padding:'0.62rem 0.8rem', border:'1px solid #CAAE9F', fontFamily:'var(--font-jost)', fontSize:'0.85rem', color:'#62191C', background:'#FBF6F2', outline:'none' }
+const lbl = { display:'block', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.16em', textTransform:'uppercase', color:'#873632', marginBottom:'0.28rem' }
 
 export default function Budget() {
   const [vendors, setVendors] = useState([])
-  const [budget, setBudget]   = useState([])
+  const [items, setItems]     = useState([])
   const [loading, setLoading] = useState(true)
   const [totalBudget, setTotalBudget] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm]       = useState({ description:'', cat:'', day:'church', amount:'', type:'expense' })
+  const [form, setForm]       = useState({ description:'', cat:'', day:'church', amount:'' })
   const [saving, setSaving]   = useState(false)
 
   useEffect(() => {
     Promise.all([getData('vendors'), getData('budget')])
-      .then(([v,b]) => { setVendors(v); setBudget(b) })
+      .then(([v,b]) => { setVendors(v); setItems(b) })
       .finally(() => setLoading(false))
   }, [])
 
   const totalQuoted = vendors.reduce((s,v)=>s+(Number(v.quote)||0),0)
   const totalPaid   = vendors.reduce((s,v)=>s+(Number(v.deposit)||0),0)
-  const tb = Number(totalBudget)||0
-  const remaining = tb - totalQuoted
+  const tb  = Number(totalBudget)||0
   const pct = tb ? Math.min(100, Math.round(totalQuoted/tb*100)) : 0
-
   const byDay = { traditional:0, church:0, general:0 }
   vendors.forEach(v => { if(byDay[v.day]!==undefined) byDay[v.day] += Number(v.quote)||0 })
 
@@ -34,18 +36,15 @@ export default function Budget() {
     if (!form.description.trim()) return
     setSaving(true)
     const res = await mutate('addBudget', form)
-    if (res.result) setBudget(b => [...b, res.result])
-    setSaving(false); setShowForm(false); setForm({ description:'', cat:'', day:'church', amount:'', type:'expense' })
+    if (res.result) setItems(b => [...b, res.result])
+    setSaving(false); setShowForm(false); setForm({ description:'', cat:'', day:'church', amount:'' })
   }
 
   async function delItem(id) {
     if (!confirm('Delete this item?')) return
-    await mutate('deleteBudget', { id })
-    setBudget(b => b.filter(x=>x.id!==id))
+    await mutate('deleteBudget', {id})
+    setItems(b => b.filter(x=>x.id!==id))
   }
-
-  const inp = { width:'100%', padding:'0.62rem 0.8rem', border:'1px solid '+C.blush, fontFamily:'var(--font-jost)', fontSize:'0.85rem', color:C.maroon, background:C.cream, outline:'none' }
-  const lbl = { display:'block', fontSize:'0.6rem', fontWeight:600, letterSpacing:'0.16em', textTransform:'uppercase', color:C.rust, marginBottom:'0.28rem' }
 
   return (
     <div className="page-wrap">
@@ -56,16 +55,13 @@ export default function Budget() {
             <p style={{ fontSize:'0.6rem', fontWeight:500, letterSpacing:'0.28em', textTransform:'uppercase', color:C.rust }}>Track</p>
             <h1 style={{ fontFamily:'var(--font-cormorant)', fontSize:'1.8rem', fontWeight:400, color:C.maroon }}>Budget</h1>
           </div>
-          <button onClick={()=>setShowForm(true)} style={{ padding:'0.6rem 1.1rem', background:C.maroon, color:'#fff', fontFamily:'var(--font-jost)', fontSize:'0.65rem', fontWeight:500, letterSpacing:'0.14em', textTransform:'uppercase', border:'none', cursor:'pointer' }}>
-            + Add
-          </button>
+          <button onClick={()=>setShowForm(true)} style={{ padding:'0.6rem 1.1rem', background:C.maroon, color:'#fff', fontFamily:'var(--font-jost)', fontSize:'0.65rem', fontWeight:500, letterSpacing:'0.14em', textTransform:'uppercase', border:'none', cursor:'pointer' }}>+ Add</button>
         </div>
 
-        {/* Set budget */}
         <div style={{ background:C.white, border:'1px solid '+C.beige, padding:'1rem 1.25rem', marginBottom:'1rem' }}>
           <label style={lbl}>Total budget (R)</label>
-          <input type="number" value={totalBudget} onChange={e=>setTotalBudget(e.target.value)} placeholder="Enter your total wedding budget" style={{ ...inp, fontSize:'1.2rem', fontWeight:500 }}/>
-          {tb > 0 && (
+          <input type="number" value={totalBudget} onChange={e=>setTotalBudget(e.target.value)} placeholder="Enter your total wedding budget" style={{ ...inp, fontSize:'1.1rem', fontWeight:500 }}/>
+          {tb>0 && (
             <div style={{ marginTop:'0.75rem' }}>
               <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.72rem', color:C.rust, marginBottom:'4px' }}>
                 <span>Quoted: {fmt(totalQuoted)}</span><span>{pct}% used</span>
@@ -77,27 +73,25 @@ export default function Budget() {
           )}
         </div>
 
-        {/* Summary cards */}
         {loading ? <p style={{ fontSize:'0.85rem', color:'rgba(98,25,28,0.45)' }}>Loading…</p> : <>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem', marginBottom:'1.1rem' }}>
-          {[['Total quoted',fmt(totalQuoted),C.maroon],['Total paid',fmt(totalPaid),'#2d6a4f'],['Outstanding',fmt(totalQuoted-totalPaid),'#9E7161'],['Remaining',tb?fmt(remaining):'—',remaining<0?'#a03030':C.maroon]].map(([l,v,c])=>(
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem', marginBottom:'1rem' }}>
+          {[['Total quoted',fmt(totalQuoted),C.maroon],['Total paid',fmt(totalPaid),'#2d6a4f'],['Outstanding',fmt(totalQuoted-totalPaid),'#9E7161'],['Remaining',tb?fmt(tb-totalQuoted):'—',tb&&tb-totalQuoted<0?'#a03030':C.maroon]].map(([l,v,col])=>(
             <div key={l} style={{ background:C.white, border:'1px solid '+C.beige, padding:'0.9rem 1rem' }}>
-              <div style={{ fontSize:'0.62rem', fontWeight:500, letterSpacing:'0.16em', textTransform:'uppercase', color:C.rust, marginBottom:'3px' }}>{l}</div>
-              <div style={{ fontFamily:'var(--font-cormorant)', fontSize:'1.5rem', fontWeight:400, color:c }}>{v}</div>
+              <div style={{ fontSize:'0.6rem', fontWeight:500, letterSpacing:'0.16em', textTransform:'uppercase', color:C.rust, marginBottom:'3px' }}>{l}</div>
+              <div style={{ fontFamily:'var(--font-cormorant)', fontSize:'1.5rem', fontWeight:400, color:col }}>{v}</div>
             </div>
           ))}
         </div>
 
-        {/* By day */}
-        <div style={{ background:C.white, border:'1px solid '+C.beige, padding:'1rem 1.25rem', marginBottom:'1.1rem' }}>
-          <div style={{ fontSize:'0.72rem', fontWeight:500, color:C.maroon, marginBottom:'0.75rem' }}>Spend by day</div>
+        <div style={{ background:C.white, border:'1px solid '+C.beige, padding:'1rem 1.25rem', marginBottom:'1rem' }}>
+          <div style={{ fontSize:'0.75rem', fontWeight:500, color:C.maroon, marginBottom:'0.75rem' }}>Spend by day</div>
           {Object.entries(byDay).map(([day,amt])=>{
             const dp = totalQuoted ? Math.round(amt/totalQuoted*100) : 0
             return (
               <div key={day} style={{ marginBottom:'0.7rem' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.72rem', marginBottom:'3px' }}>
                   <span style={{ color:'rgba(98,25,28,0.7)', textTransform:'capitalize' }}>{day==='church'?'Church & reception':day}</span>
-                  <span style={{ fontWeight:500, color:C.maroon }}>{fmt(amt)} <span style={{ color:'rgba(98,25,28,0.4)',fontWeight:400 }}>({dp}%)</span></span>
+                  <span style={{ fontWeight:500, color:C.maroon }}>{fmt(amt)} <span style={{ color:'rgba(98,25,28,0.4)', fontWeight:400 }}>({dp}%)</span></span>
                 </div>
                 <div style={{ height:4, background:C.beige, borderRadius:2 }}>
                   <div style={{ height:'100%', background:C.rust, borderRadius:2, width:`${dp}%` }}/>
@@ -107,9 +101,8 @@ export default function Budget() {
           })}
         </div>
 
-        {/* Vendor quotes table */}
-        <div style={{ background:C.white, border:'1px solid '+C.beige, padding:'1rem 1.25rem', marginBottom:'1.1rem' }}>
-          <div style={{ fontSize:'0.72rem', fontWeight:500, color:C.maroon, marginBottom:'0.75rem' }}>All vendor quotes</div>
+        <div style={{ background:C.white, border:'1px solid '+C.beige, padding:'1rem 1.25rem' }}>
+          <div style={{ fontSize:'0.75rem', fontWeight:500, color:C.maroon, marginBottom:'0.75rem' }}>All vendor quotes</div>
           {vendors.length===0 ? <p style={{ fontSize:'0.8rem', color:'rgba(98,25,28,0.4)' }}>No vendors added yet.</p>
           : vendors.map(v=>(
             <div key={v.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.5rem 0', borderBottom:'1px solid '+C.beige }}>
@@ -124,25 +117,6 @@ export default function Budget() {
             </div>
           ))}
         </div>
-
-        {/* Extra budget items */}
-        {budget.length > 0 && (
-          <div style={{ background:C.white, border:'1px solid '+C.beige, padding:'1rem 1.25rem' }}>
-            <div style={{ fontSize:'0.72rem', fontWeight:500, color:C.maroon, marginBottom:'0.75rem' }}>Other budget items</div>
-            {budget.map(item=>(
-              <div key={item.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.5rem 0', borderBottom:'1px solid '+C.beige }}>
-                <div>
-                  <div style={{ fontSize:'0.8rem', color:C.maroon }}>{item.description}</div>
-                  <div style={{ fontSize:'0.68rem', color:'rgba(98,25,28,0.5)' }}>{item.cat} · {item.day} · by {item.createdBy}</div>
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                  <span style={{ fontSize:'0.82rem', fontWeight:500, color:C.maroon }}>{fmt(item.amount)}</span>
-                  <button onClick={()=>delItem(item.id)} style={{ fontSize:'0.62rem', color:'rgba(160,48,48,0.6)', background:'none', border:'none', cursor:'pointer' }}>✕</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
         </>}
 
         {showForm && (

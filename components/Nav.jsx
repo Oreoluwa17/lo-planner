@@ -8,6 +8,7 @@ const LINKS = [
   { href: '/vendors',   label: 'Vendors',   icon: '👥' },
   { href: '/tasks',     label: 'Tasks',     icon: '✅' },
   { href: '/budget',    label: 'Budget',    icon: '💰' },
+  { href: '/registry',  label: 'Registry',  icon: '🎁' },
   { href: '/activity',  label: 'Activity',  icon: '📋' },
 ]
 
@@ -65,9 +66,9 @@ export default function Nav() {
         {LINKS.map(l => {
           const active = path === l.href
           return (
-            <Link key={l.href} href={l.href} style={{ flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0.5rem 0.25rem',textDecoration:'none',gap:2,borderTop:active?'2px solid #E0CFC2':'2px solid transparent' }}>
-              <span style={{ fontSize:'1.1rem',lineHeight:1 }}>{l.icon}</span>
-              <span style={{ fontSize:'0.5rem',fontWeight:500,letterSpacing:'0.08em',color:active?'#fff':'rgba(255,255,255,0.5)',textTransform:'uppercase' }}>{l.label}</span>
+            <Link key={l.href} href={l.href} style={{ flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0.5rem 0.1rem',textDecoration:'none',gap:2,borderTop:active?'2px solid #E0CFC2':'2px solid transparent' }}>
+              <span style={{ fontSize:'0.95rem',lineHeight:1 }}>{l.icon}</span>
+              <span style={{ fontSize:'0.42rem',fontWeight:500,letterSpacing:'0.06em',color:active?'#fff':'rgba(255,255,255,0.5)',textTransform:'uppercase' }}>{l.label}</span>
             </Link>
           )
         })}
@@ -80,7 +81,7 @@ export default function Nav() {
         @media(max-width: 767px) {
           .nav-desktop { display: none !important; }
           .nav-mobile  { display: flex !important; }
-          .page-wrap   { margin-left: 0; padding-bottom: 5rem; }
+          .page-wrap   { margin-left: 0; padding-bottom: 5.5rem; }
         }
       `}</style>
     </>

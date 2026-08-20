@@ -1,14 +1,8 @@
 /* ============================================================
    WEDDING PLANNER — GOOGLE APPS SCRIPT BACKEND
    ============================================================
-   Setup:
-   1. Open your Google Sheet
-   2. Extensions > Apps Script > paste this entire file
-   3. Run initSheets() once to create all tabs + default tasks
-   4. Deploy > New deployment > Web app
-      - Execute as: Me
-      - Who has access: Anyone
-   5. Copy the deployment URL into SHEETS_SCRIPT_URL in Vercel
+   After updating this file:
+   Deploy > Manage deployments > Edit (pencil) > New version > Deploy
    ============================================================ */
 
 var SHEET_NAMES = {
@@ -16,12 +10,14 @@ var SHEET_NAMES = {
   TASKS:    'Tasks',
   BUDGET:   'Budget',
   ACTIVITY: 'Activity',
+  REGISTRY: 'Registry',
 };
 
-var VENDOR_HEADERS  = ['id','name','cat','day','contact','phone','quote','deposit','status','notes','createdBy','createdAt','updatedBy','updatedAt'];
-var TASK_HEADERS    = ['id','text','cat','day','done','doneBy','doneAt','createdBy','createdAt'];
-var BUDGET_HEADERS  = ['id','description','cat','day','amount','type','createdBy','createdAt'];
-var ACTIVITY_HEADERS= ['timestamp','user','action','description'];
+var VENDOR_HEADERS   = ['id','name','cat','day','contact','phone','quote','currency','deposit','status','notes','createdBy','createdAt','updatedBy','updatedAt'];
+var TASK_HEADERS     = ['id','text','cat','day','done','doneBy','doneAt','createdBy','createdAt'];
+var BUDGET_HEADERS   = ['id','description','cat','day','amount','type','createdBy','createdAt'];
+var ACTIVITY_HEADERS = ['timestamp','user','action','description'];
+var REGISTRY_HEADERS = ['id','name','store','url','price','currency','category','imageUrl','status','notes','createdBy','createdAt'];
 
 // ── ROUTING ────────────────────────────────────────────────
 function doGet(e) {
@@ -32,7 +28,8 @@ function doGet(e) {
     if      (action === 'vendors')  data = getRows(ss, SHEET_NAMES.VENDORS);
     else if (action === 'tasks')    data = getRows(ss, SHEET_NAMES.TASKS);
     else if (action === 'budget')   data = getRows(ss, SHEET_NAMES.BUDGET);
-    else if (action === 'activity') data = getRows(ss, SHEET_NAMES.ACTIVITY).reverse().slice(0,100);
+    else if (action === 'activity') data = getRows(ss, SHEET_NAMES.ACTIVITY).reverse().slice(0, 100);
+    else if (action === 'registry') data = getRows(ss, SHEET_NAMES.REGISTRY);
     else data = { error: 'Unknown action: ' + action };
     return json({ success: true, data: data });
   } catch(err) {
@@ -49,14 +46,17 @@ function doPost(e) {
 
   try {
     var result;
-    if      (action === 'addVendor')    result = addVendor(ss, data, user);
-    else if (action === 'updateVendor') result = updateVendor(ss, data, user);
-    else if (action === 'deleteVendor') result = deleteRow(ss, SHEET_NAMES.VENDORS, data.id);
-    else if (action === 'addTask')      result = addTask(ss, data, user);
-    else if (action === 'toggleTask')   result = toggleTask(ss, data, user);
-    else if (action === 'deleteTask')   result = deleteRow(ss, SHEET_NAMES.TASKS, data.id);
-    else if (action === 'addBudget')    result = addBudget(ss, data, user);
-    else if (action === 'deleteBudget') result = deleteRow(ss, SHEET_NAMES.BUDGET, data.id);
+    if      (action === 'addVendor')      result = addVendor(ss, data, user);
+    else if (action === 'updateVendor')   result = updateVendor(ss, data, user);
+    else if (action === 'deleteVendor')   result = deleteRow(ss, SHEET_NAMES.VENDORS, data.id);
+    else if (action === 'addTask')        result = addTask(ss, data, user);
+    else if (action === 'toggleTask')     result = toggleTask(ss, data, user);
+    else if (action === 'deleteTask')     result = deleteRow(ss, SHEET_NAMES.TASKS, data.id);
+    else if (action === 'addBudget')      result = addBudget(ss, data, user);
+    else if (action === 'deleteBudget')   result = deleteRow(ss, SHEET_NAMES.BUDGET, data.id);
+    else if (action === 'addRegistry')    result = addRegistry(ss, data, user);
+    else if (action === 'updateRegistry') result = updateRegistry(ss, data, user);
+    else if (action === 'deleteRegistry') result = deleteRow(ss, SHEET_NAMES.REGISTRY, data.id);
     else result = { error: 'Unknown action: ' + action };
 
     logActivity(ss, user, action, data);
@@ -72,9 +72,9 @@ function addVendor(ss, data, user) {
   var row = {
     id: genId(), name: data.name || '', cat: data.cat || '',
     day: data.day || '', contact: data.contact || '', phone: data.phone || '',
-    quote: data.quote || '', deposit: data.deposit || '',
-    status: data.status || 'Not Contacted', notes: data.notes || '',
-    createdBy: user, createdAt: ts, updatedBy: user, updatedAt: ts,
+    quote: data.quote || '', currency: data.currency || 'ZAR',
+    deposit: data.deposit || '', status: data.status || 'Not Contacted',
+    notes: data.notes || '', createdBy: user, createdAt: ts, updatedBy: user, updatedAt: ts,
   };
   appendRow(ss, SHEET_NAMES.VENDORS, VENDOR_HEADERS, row);
   return row;
@@ -107,7 +107,6 @@ function toggleTask(ss, data, user) {
   var doneIdx   = headers.indexOf('done');
   var doneByIdx = headers.indexOf('doneBy');
   var doneAtIdx = headers.indexOf('doneAt');
-
   for (var i = 1; i < values.length; i++) {
     if (values[i][idIdx] === data.id) {
       var isDone = data.done === true || data.done === 'true';
@@ -128,6 +127,24 @@ function addBudget(ss, data, user) {
   };
   appendRow(ss, SHEET_NAMES.BUDGET, BUDGET_HEADERS, row);
   return row;
+}
+
+// ── REGISTRY ──────────────────────────────────────────────
+function addRegistry(ss, data, user) {
+  var row = {
+    id: genId(), name: data.name || '', store: data.store || '',
+    url: data.url || '', price: data.price || '', currency: data.currency || 'ZAR',
+    category: data.category || '', imageUrl: data.imageUrl || '',
+    status: data.status || 'Available', notes: data.notes || '',
+    createdBy: user, createdAt: now(),
+  };
+  appendRow(ss, SHEET_NAMES.REGISTRY, REGISTRY_HEADERS, row);
+  return row;
+}
+
+function updateRegistry(ss, data, user) {
+  updateRowById(ss, SHEET_NAMES.REGISTRY, REGISTRY_HEADERS, data);
+  return data;
 }
 
 // ── GENERIC HELPERS ───────────────────────────────────────
@@ -187,14 +204,17 @@ function logActivity(ss, user, action, data) {
 
 function actionDescription(action, name) {
   var map = {
-    addVendor:    'Added vendor: '       + name,
-    updateVendor: 'Updated vendor: '     + name,
-    deleteVendor: 'Deleted vendor: '     + name,
-    addTask:      'Added task: '         + name,
-    toggleTask:   'Toggled task: '       + name,
-    deleteTask:   'Deleted task: '       + name,
-    addBudget:    'Added budget item: '  + name,
-    deleteBudget: 'Deleted budget item: '+ name,
+    addVendor:      'Added vendor: '        + name,
+    updateVendor:   'Updated vendor: '      + name,
+    deleteVendor:   'Deleted vendor: '      + name,
+    addTask:        'Added task: '          + name,
+    toggleTask:     'Toggled task: '        + name,
+    deleteTask:     'Deleted task: '        + name,
+    addBudget:      'Added budget item: '   + name,
+    deleteBudget:   'Deleted budget item: ' + name,
+    addRegistry:    'Added gift to registry: '    + name,
+    updateRegistry: 'Updated registry item: '     + name,
+    deleteRegistry: 'Removed from registry: '     + name,
   };
   return map[action] || action + (name ? ': ' + name : '');
 }
@@ -203,7 +223,7 @@ function genId()  { return Utilities.getUuid().replace(/-/g,'').substr(0,12); }
 function now()    { return new Date().toISOString(); }
 function json(obj){ return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }
 
-// ── INIT — run this ONCE after pasting ───────────────────
+// ── INIT — run this ONCE ─────────────────────────────────
 function initSheets() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -219,10 +239,10 @@ function initSheets() {
   createSheet(SHEET_NAMES.VENDORS,  VENDOR_HEADERS);
   createSheet(SHEET_NAMES.BUDGET,   BUDGET_HEADERS);
   createSheet(SHEET_NAMES.ACTIVITY, ACTIVITY_HEADERS);
+  createSheet(SHEET_NAMES.REGISTRY, REGISTRY_HEADERS);
 
   var taskSheet = createSheet(SHEET_NAMES.TASKS, TASK_HEADERS);
 
-  // Default tasks
   var ts = now();
   var defaultTasks = [
     [genId(),'Book tent / marquee hire','Venue & Setup','traditional','false','','','system',ts],

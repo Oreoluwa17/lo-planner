@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cream: #FBF6F2;
+  --beige: #E0CFC2;
+  --blush: #CAAE9F;
+  --taupe: #9E7161;
+  --rust:  #873632;
+  --maroon:#62191C;
+  --white: #FFFFFF;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-jost), system-ui, sans-serif;
+  background: var(--cream);
+  color: var(--maroon);
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+input, select, textarea { font-family: var(--font-jost), system-ui, sans-serif; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--blush); border-radius: 2px; }

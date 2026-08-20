@@ -1,41 +1,36 @@
-# L & O Wedding Planner
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-## Setup
+## Getting Started
 
-### 1 — Create Next.js project
+First, run the development server:
+
 ```bash
-npx create-next-app@latest lo-planner
-cd lo-planner
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
-TypeScript → No, ESLint → Yes, Tailwind → Yes, src/ → No, App Router → Yes, alias → No
 
-### 2 — Install next-auth
-```bash
-npm install next-auth
-```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-### 3 — Copy all files from this zip into your project (replace defaults)
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-### 4 — Set up Google Sheets
-1. Create a new Google Sheet
-2. Extensions → Apps Script → paste `apps-script-planner.js`
-3. Run `initSheets` once to create all tabs + load default tasks
-4. Deploy → New deployment → Web app (Execute as: Me, Access: Anyone)
-5. Copy the deployment URL
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-### 5 — Push to GitHub and connect to Vercel
+## Learn More
 
-### 6 — Add Environment Variables in Vercel
-| Key | Value |
-|-----|-------|
-| `SHEETS_SCRIPT_URL` | Your Apps Script deployment URL |
-| `NEXTAUTH_SECRET` | Any long random string |
-| `NEXTAUTH_URL` | Your Vercel URL e.g. https://lo-planner.vercel.app |
-| `PASSWORD_OREOLUWA` | Password for Oreoluwa |
-| `PASSWORD_LONDIWE` | Password for Londiwe |
+To learn more about Next.js, take a look at the following resources:
 
-### 7 — Redeploy and login
-| Username | Password |
-|----------|----------|
-| `ore` | your PASSWORD_OREOLUWA value |
-| `londiwe` | your PASSWORD_LONDIWE value |
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

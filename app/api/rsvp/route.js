@@ -16,7 +16,7 @@ export async function GET(request) {
   const url = process.env.RSVP_SCRIPT_URL
   if (!url) return NextResponse.json({ error: 'RSVP_SCRIPT_URL not configured' }, { status: 500 })
 
-  const res = await fetch(`${url}?action=getGuests`, { cache: 'no-store' })
+  const res = await fetch(`${url}?action=guests`, { cache: 'no-store' })
   const data = await res.json()
   return NextResponse.json(data)
 }

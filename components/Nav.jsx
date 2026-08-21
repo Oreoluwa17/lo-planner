@@ -4,12 +4,13 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 const LINKS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '⬜' },
-  { href: '/vendors',   label: 'Vendors',   icon: '👥' },
-  { href: '/tasks',     label: 'Tasks',     icon: '✅' },
-  { href: '/budget',    label: 'Budget',    icon: '💰' },
-  { href: '/registry',  label: 'Registry',  icon: '🎁' },
-  { href: '/activity',  label: 'Activity',  icon: '📋' },
+  { href:'/dashboard', label:'Dashboard', icon:'⬜' },
+  { href:'/vendors',   label:'Vendors',   icon:'👥' },
+  { href:'/tasks',     label:'Tasks',     icon:'✅' },
+  { href:'/budget',    label:'Budget',    icon:'💰' },
+  { href:'/registry',  label:'Registry',  icon:'🎁' },
+  { href:'/rsvp',      label:'RSVPs',     icon:'💌' },
+  { href:'/activity',  label:'Activity',  icon:'📋' },
 ]
 
 export default function Nav() {
@@ -67,8 +68,8 @@ export default function Nav() {
           const active = path === l.href
           return (
             <Link key={l.href} href={l.href} style={{ flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0.5rem 0.1rem',textDecoration:'none',gap:2,borderTop:active?'2px solid #E0CFC2':'2px solid transparent' }}>
-              <span style={{ fontSize:'0.95rem',lineHeight:1 }}>{l.icon}</span>
-              <span style={{ fontSize:'0.42rem',fontWeight:500,letterSpacing:'0.06em',color:active?'#fff':'rgba(255,255,255,0.5)',textTransform:'uppercase' }}>{l.label}</span>
+              <span style={{ fontSize:'0.9rem',lineHeight:1 }}>{l.icon}</span>
+              <span style={{ fontSize:'0.38rem',fontWeight:500,letterSpacing:'0.06em',color:active?'#fff':'rgba(255,255,255,0.5)',textTransform:'uppercase' }}>{l.label}</span>
             </Link>
           )
         })}

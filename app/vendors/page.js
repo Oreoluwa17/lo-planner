@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import Nav from '@/components/Nav'
 import { getData, mutate } from '@/lib/sheets'
 
-const STATUSES  = ['Not Contacted','Quoted','Booked','Deposit Paid','Fully Paid']
+const STATUSES   = ['Not Contacted','Quoted','Booked','Deposit Paid','Fully Paid']
 const CURRENCIES = ['ZAR','USD','NGN','GBP']
 const CURRENCY_SYMBOLS = { ZAR:'R', USD:'$', NGN:'₦', GBP:'£' }
 const STATUS_COLOR = { 'Not Contacted':'rgba(98,25,28,0.4)','Quoted':'#9E7161','Booked':'#873632','Deposit Paid':'#873632','Fully Paid':'#2d6a4f' }
@@ -36,24 +36,36 @@ export default function Vendors() {
     getData('vendors').then(setVendors).finally(() => setLoading(false))
     fetch('/api/rates').then(r => r.json()).then(d => {
       setRates(d.rates)
-      if (d.fallback) setRateInfo('Using estimated rates (live rates unavailable)')
-      else if (d.updated) setRateInfo(`Rates updated: ${new Date(d.updated).toLocaleDateString()}`)
+      if (d.fallback) setRateInfo('Using estimated rates')
+      else if (d.updated) setRateInfo(`Rates: ${new Date(d.updated).toLocaleDateString()}`)
     }).catch(() => {})
   }, [])
 
-  // Convert any currency amount to ZAR
   function toZAR(amount, currency) {
     const rate = rates[currency] || 1
     return Number(amount) / rate
   }
 
   const filtered = filter === 'all' ? vendors : vendors.filter(v => v.day === filter)
+  const totalQuotedZAR = vendors.reduce((s,v) => s + toZAR(v.quote, v.currency||'ZAR'), 0)
+  const totalPaidZAR   = vendors.reduce((s,v) => s + toZAR(v.deposit, v.currency||'ZAR'), 0)
 
-  const totalQuotedZAR = vendors.reduce((s, v) => s + toZAR(v.quote, v.currency || 'ZAR'), 0)
-  const totalPaidZAR   = vendors.reduce((s, v) => s + toZAR(v.deposit, v.currency || 'ZAR'), 0)
+  function openAdd() {
+    setForm({...EMPTY})
+    setEditId(null)
+    setShowForm(true)
+  }
 
-  function openAdd()   { setForm(EMPTY); setEditId(null); setShowForm(true) }
-  function openEdit(v) { setForm({...v}); setEditId(v.id); setShowForm(true) }
+  function openEdit(v) {
+    // Always ensure currency is set — fixes the ZAR reset bug
+    setForm({
+      ...EMPTY,
+      ...v,
+      currency: v.currency && CURRENCIES.includes(v.currency) ? v.currency : 'ZAR',
+    })
+    setEditId(v.id)
+    setShowForm(true)
+  }
 
   async function save() {
     if (!form.name.trim()) return
@@ -86,7 +98,7 @@ export default function Vendors() {
           <button onClick={openAdd} style={{ padding:'0.6rem 1.1rem',background:'#62191C',color:'#fff',fontSize:'0.65rem',fontWeight:500,letterSpacing:'0.14em',textTransform:'uppercase',border:'none',cursor:'pointer' }}>+ Add</button>
         </div>
 
-        {/* Summary */}
+        {/* Totals */}
         <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem',marginBottom:'1rem' }}>
           <div style={{ background:'#fff',border:'1px solid #E0CFC2',padding:'0.9rem 1rem' }}>
             <div style={{ fontSize:'0.6rem',fontWeight:500,letterSpacing:'0.16em',textTransform:'uppercase',color:'#873632',marginBottom:3 }}>Total quoted (ZAR)</div>
@@ -98,22 +110,23 @@ export default function Vendors() {
           </div>
         </div>
 
-        {rateInfo && <p style={{ fontSize:'0.65rem',color:'rgba(98,25,28,0.45)',marginBottom:'1rem',textAlign:'center' }}>{rateInfo}</p>}
+        {rateInfo && <p style={{ fontSize:'0.65rem',color:'rgba(98,25,28,0.4)',marginBottom:'0.75rem',textAlign:'center' }}>{rateInfo}</p>}
 
         {/* Filters */}
         <div style={{ display:'flex',gap:6,marginBottom:'1.1rem',flexWrap:'wrap' }}>
           {['all','traditional','church','general'].map(f => (
-            <button key={f} onClick={()=>setFilter(f)} style={{ padding:'4px 12px',fontSize:'0.62rem',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',border:'1px solid #CAAE9F',background:filter===f?'#62191C':'#fff',color:filter===f?'#fff':'#873632',cursor:'pointer',borderRadius:20 }}>{f==='all'?'All':f}</button>
+            <button key={f} onClick={()=>setFilter(f)} style={{ padding:'4px 12px',fontSize:'0.62rem',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',border:'1px solid #CAAE9F',background:filter===f?'#62191C':'#fff',color:filter===f?'#fff':'#873632',cursor:'pointer',borderRadius:20 }}>
+              {f==='all'?'All':f}
+            </button>
           ))}
         </div>
 
         {loading ? <p style={{ fontSize:'0.85rem',color:'rgba(98,25,28,0.45)' }}>Loading…</p>
         : filtered.length===0 ? <p style={{ fontSize:'0.85rem',color:'rgba(98,25,28,0.4)',textAlign:'center',padding:'2rem' }}>No vendors yet.</p>
         : filtered.map(v => {
-          const cur = v.currency || 'ZAR'
-          const quoteZAR = toZAR(v.quote, cur)
+          const cur = (v.currency && CURRENCIES.includes(v.currency)) ? v.currency : 'ZAR'
+          const quoteZAR   = toZAR(v.quote, cur)
           const depositZAR = toZAR(v.deposit, cur)
-          const showConversion = cur !== 'ZAR' && v.quote
 
           return (
             <div key={v.id} style={{ background:'#fff',border:'1px solid #E0CFC2',padding:'1rem 1.1rem',marginBottom:'0.75rem' }}>
@@ -131,7 +144,7 @@ export default function Vendors() {
                 </div>
                 <div style={{ textAlign:'right',flexShrink:0 }}>
                   <div style={{ fontSize:'0.88rem',fontWeight:500,color:'#62191C' }}>{fmtZAR(quoteZAR)}</div>
-                  {showConversion && <div style={{ fontSize:'0.68rem',color:'rgba(98,25,28,0.45)' }}>{fmtOrig(v.quote, cur)}</div>}
+                  {cur !== 'ZAR' && v.quote && <div style={{ fontSize:'0.68rem',color:'rgba(98,25,28,0.45)' }}>{fmtOrig(v.quote, cur)}</div>}
                   <div style={{ fontSize:'0.7rem',color:'#2d6a4f' }}>Paid: {fmtZAR(depositZAR)}</div>
                   <div style={{ display:'flex',gap:4,marginTop:6,justifyContent:'flex-end' }}>
                     <button onClick={()=>openEdit(v)} style={{ fontSize:'0.65rem',padding:'3px 8px',background:'transparent',border:'1px solid #CAAE9F',color:'#873632',cursor:'pointer' }}>Edit</button>
@@ -143,6 +156,7 @@ export default function Vendors() {
           )
         })}
 
+        {/* Form */}
         {showForm && (
           <div style={{ position:'fixed',inset:0,background:'rgba(98,25,28,0.4)',zIndex:200,display:'flex',alignItems:'flex-end',justifyContent:'center' }} onClick={e=>{if(e.target===e.currentTarget)setShowForm(false)}}>
             <div style={{ background:'#fff',width:'100%',maxWidth:480,maxHeight:'92vh',overflowY:'auto',padding:'1.5rem',borderRadius:'2px 2px 0 0' }}>
@@ -160,32 +174,54 @@ export default function Vendors() {
                 <div><label style={S.lbl}>Phone</label><input style={S.inp} value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} placeholder="+27 00 000 0000"/></div>
               </div>
 
-              {/* Quote with currency */}
+              {/* Quote with currency — key fix: value always set explicitly */}
               <div style={{ marginBottom:'0.9rem' }}>
                 <label style={S.lbl}>Quote amount</label>
-                <div style={{ display:'grid',gridTemplateColumns:'100px 1fr',gap:'0.5rem' }}>
-                  <select style={S.inp} value={form.currency} onChange={e=>setForm(f=>({...f,currency:e.target.value}))}>
-                    {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_SYMBOLS[c]} {c}</option>)}
+                <div style={{ display:'grid',gridTemplateColumns:'110px 1fr',gap:'0.5rem' }}>
+                  <select
+                    style={S.inp}
+                    value={form.currency || 'ZAR'}
+                    onChange={e => setForm(f => ({...f, currency: e.target.value}))}
+                  >
+                    {CURRENCIES.map(c => (
+                      <option key={c} value={c}>{CURRENCY_SYMBOLS[c]} {c}</option>
+                    ))}
                   </select>
-                  <input style={S.inp} type="number" value={form.quote} onChange={e=>setForm(f=>({...f,quote:e.target.value}))} placeholder="0"/>
+                  <input
+                    style={S.inp}
+                    type="number"
+                    value={form.quote}
+                    onChange={e => setForm(f => ({...f, quote: e.target.value}))}
+                    placeholder="0"
+                  />
                 </div>
-                {form.currency !== 'ZAR' && form.quote && (
+                {form.currency && form.currency !== 'ZAR' && form.quote && (
                   <div style={{ fontSize:'0.7rem',color:'rgba(98,25,28,0.55)',marginTop:4 }}>
-                    ≈ {fmtZAR(toZAR(form.quote, form.currency))} ZAR at current rates
+                    ≈ {fmtZAR(toZAR(form.quote, form.currency))} at current rates
                   </div>
                 )}
               </div>
 
               <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem',marginBottom:'0.9rem' }}>
-                <div><label style={S.lbl}>Deposit paid ({CURRENCY_SYMBOLS[form.currency]||'R'})</label><input style={S.inp} type="number" value={form.deposit} onChange={e=>setForm(f=>({...f,deposit:e.target.value}))} placeholder="0"/></div>
-                <div><label style={S.lbl}>Status</label><select style={S.inp} value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>{STATUSES.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
+                <div>
+                  <label style={S.lbl}>Deposit paid ({CURRENCY_SYMBOLS[form.currency||'ZAR']})</label>
+                  <input style={S.inp} type="number" value={form.deposit} onChange={e=>setForm(f=>({...f,deposit:e.target.value}))} placeholder="0"/>
+                </div>
+                <div>
+                  <label style={S.lbl}>Status</label>
+                  <select style={S.inp} value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>
+                    {STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div style={{ marginBottom:'1.4rem' }}><label style={S.lbl}>Notes</label><input style={S.inp} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Any notes…"/></div>
 
               <div style={{ display:'flex',gap:'0.75rem' }}>
                 <button onClick={()=>setShowForm(false)} style={{ flex:1,padding:'0.7rem',background:'#FBF6F2',border:'1px solid #CAAE9F',color:'#873632',fontSize:'0.72rem',cursor:'pointer' }}>Cancel</button>
-                <button onClick={save} disabled={saving} style={{ flex:2,padding:'0.7rem',background:'#62191C',border:'none',color:'#fff',fontSize:'0.72rem',cursor:'pointer',opacity:saving?0.7:1 }}>{saving?'Saving…':editId?'Save changes':'Add vendor'}</button>
+                <button onClick={save} disabled={saving} style={{ flex:2,padding:'0.7rem',background:'#62191C',border:'none',color:'#fff',fontSize:'0.72rem',cursor:'pointer',opacity:saving?0.7:1 }}>
+                  {saving?'Saving…':editId?'Save changes':'Add vendor'}
+                </button>
               </div>
             </div>
           </div>
